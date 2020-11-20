@@ -73,7 +73,7 @@
               <tr
                 v-for="(int, idx) in interestedAreas"
                 :key="idx"
-                @click="setMapCenter(int)"
+                @click="setAreas(int)"
               >
                 <td>{{ int.sidoName }} {{ int.gugunName }} {{ int.dong }}</td>
                 <td>
@@ -91,6 +91,66 @@
           </table>
         </div>
         <div id="map" style="width: 70%; height: 500px; margin: auto;"></div>
+        <div class="card-body">
+          <table
+            class="table mt-2 text-center"
+            style="width: 70%; margin: 0 auto;"
+          >
+            <thead>
+              <tr>
+                <th>번호</th>
+                <th>법정동</th>
+                <th>아파트이름</th>
+                <th>지번</th>
+                <th>지역코드</th>
+              </tr>
+            </thead>
+            <tbody id="searchResult" v-if="areas.length > 0">
+              <tr v-for="(area, idx) in areas" :key="idx">
+                <td>{{ area.no }}</td>
+                <td>{{ area.dong }}</td>
+                <td>{{ area.aptName }}</td>
+                <td>{{ area.jibun }}</td>
+                <td>{{ area.code }}</td>
+              </tr>
+            </tbody>
+            <tbody v-else>
+              <tr>
+                <td colspan="6" class="text-center">
+                  등록된 건물 정보가 없습니다!
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-body">
+          <table
+            class="table mt-2 text-center"
+            style="width: 70%; margin: 0 auto;"
+          >
+            <thead>
+              <tr>
+                <th>법정동</th>
+                <th>도로명</th>
+                <th>가게명</th>
+              </tr>
+            </thead>
+            <tbody id="searchResult" v-if="stores.length > 0">
+              <tr v-for="(store, idx) in stores" :key="idx">
+                <td>{{ store.dong }}</td>
+                <td>{{ store.roadname }}</td>
+                <td>{{ store.storename }}</td>
+              </tr>
+            </tbody>
+            <tbody v-else>
+              <tr>
+                <td colspan="6" class="text-center">
+                  등록된 상권 정보가 없습니다!
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
     <Modal v-if="modal" v-on:close="closeModal" :data="pollution" />
@@ -125,18 +185,8 @@ export default {
       selGugun: '',
       selDong: '',
       interestedAreas: [],
-      interestedArea: {
-        번호: '',
-        법정동: '',
-        지역코드: '',
-        거래액: '',
-        준공년도: '',
-        거래날짜: '',
-        평수: '',
-        층: '',
-        지번: '',
-        건물명: '',
-      },
+      areas: [],
+      stores: [],
       map: null,
       modal: false,
     };
@@ -154,6 +204,16 @@ export default {
       http
         .get(`/dong/${this.selGugun.code}`)
         .then(res => (this.dongs = res.data));
+    },
+    setAreas(int) {
+      http.get(`/apt/${int.dong}`).then(res => (this.areas = res.data));
+      this.setStores(int);
+    },
+    setStores(int) {
+      http.get(`/store/${int.dong}`).then(res => {
+        this.stores = res.data;
+        console.log(res.data);
+      });
     },
     setInterested() {
       const temp = {
