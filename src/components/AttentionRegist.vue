@@ -5,24 +5,24 @@
       type="text"
       placeholder="작성자를 입력하세요"
       class="form-control"
-      v-model="qna.writer"
+      v-model="attention.writer"
     />
     <label for="제목">제목</label>
     <input
       type="text"
       placeholder="제목을 입력하세요"
       class="form-control"
-      v-model="qna.title"
+      v-model="attention.title"
     />
     <label for="내용">내용</label>
     <textarea
       placeholder="내용을 입력하세요"
       class="form-control"
-      v-model="qna.content"
+      v-model="attention.content"
     ></textarea>
     <div class="text-right" style="margin-top: 30px;">
       <button
-        v-if="qna.no === 0"
+        v-if="attention.no === 0"
         v-on:click="register"
         class="btn btn-primary"
         style="margin-right: 10px"
@@ -37,18 +37,18 @@
       >
         수정
       </button>
-      <router-link to="/qna" class="btn btn-primary">목록</router-link>
+      <router-link to="/attention" class="btn btn-primary">목록</router-link>
     </div>
   </div>
 </template>
 
 <script>
-import http from '../qna-common';
+import http from '../attention-common';
 export default {
-  name: 'QnARegist',
+  name: 'AttentionRegist',
   data() {
     return {
-      qna: {
+      attention: {
         no: 0,
         writer: '',
         title: '',
@@ -60,28 +60,28 @@ export default {
   methods: {
     register() {
       http
-        .post('/addQnA', {
-          writer: this.qna.writer,
-          title: this.qna.title,
-          content: this.qna.content,
+        .post('/', {
+          writer: this.attention.writer,
+          title: this.attention.title,
+          content: this.attention.content,
         })
         .then(() => {
           alert('등록이 완료되었습니다!');
-          this.$router.push('/qna');
+          this.$router.push('/attention');
         })
         .catch(err => console.log(err));
     },
     update() {
       http
-        .put('/updateQnA', {
-          no: this.qna.no,
-          writer: this.qna.writer,
-          title: this.qna.title,
-          content: this.qna.content,
+        .put('/', {
+          no: this.attention.no,
+          writer: this.attention.writer,
+          title: this.attention.title,
+          content: this.attention.content,
         })
         .then(() => {
           alert('완료되었습니다!');
-          this.$router.push('/qna');
+          this.$router.push('/attention');
         })
         .catch(err => console.log(err));
     },
@@ -89,9 +89,9 @@ export default {
   created() {
     if (this.$route.params.no) {
       http
-        .get('/findQnAByNo/' + this.$route.params.no)
+        .get(`/${this.$route.params.no}`)
         .then(res => {
-          this.qna = res.data;
+          this.attention = res.data;
         })
         .catch(err => console.log(err));
     }

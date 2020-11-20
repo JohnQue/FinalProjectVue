@@ -1,10 +1,13 @@
 <template>
   <div id="app">
     <div class="container">
+      <router-link to="/attention">공지사항</router-link>&nbsp;
       <router-link to="/map">부동산</router-link>&nbsp;
-      <router-link to="/qna">게시판</router-link>&nbsp;
+      <router-link to="/qna">QnA</router-link>&nbsp;
       <router-link to="/healthcenter">선별진료소</router-link>&nbsp;
       <router-link to="/safehospital">안심병원</router-link>&nbsp;
+      <router-link to="/pollution">환경 정보</router-link>&nbsp;
+      <router-link to="/interested">관심구역</router-link>&nbsp;
       <h2 class="text-center" style="margin-bottom: 30px">
         Vue를 이용한 게시판
       </h2>

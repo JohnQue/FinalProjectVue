@@ -11,7 +11,7 @@
           <div class="modal-body">
             <slot name="body">
               <div v-for="(value, key, idx) in data" :key="idx">
-                {{ key }}: {{ value }}
+                <strong>{{ key }}</strong> : {{ value }}
               </div>
             </slot>
           </div>
@@ -57,7 +57,7 @@ export default {
 }
 
 .modal-container {
-  width: 300px;
+  width: 500px;
   margin: 0px auto;
   padding: 20px 30px;
   background-color: #fff;

@@ -10,30 +10,33 @@
       </colgroup>
       <tr>
         <th>번호</th>
-        <td>{{ qna.no }}</td>
+        <td>{{ attention.no }}</td>
       </tr>
       <tr>
         <th>제목</th>
-        <td>{{ qna.title }}</td>
+        <td>{{ attention.title }}</td>
       </tr>
       <tr>
         <th>작성자</th>
-        <td>{{ qna.writer }}</td>
+        <td>{{ attention.writer }}</td>
       </tr>
       <tr>
         <th>날짜</th>
-        <td>{{ convertToDate(qna.date) }}</td>
+        <td>{{ convertToDate(attention.date) }}</td>
       </tr>
       <tr>
-        <td colspan="2">{{ qna.content }}</td>
+        <td colspan="2">{{ attention.content }}</td>
       </tr>
     </table>
 
     <div class="text-center">
-      <router-link class="btn btn-primary" to="/qna">목록</router-link>
+      <router-link class="btn btn-primary" to="/attention">목록</router-link>
       <router-link
         class="btn btn-primary"
-        :to="{ name: 'updateQnA', params: { no: qna.no ? qna.no : 0 } }"
+        :to="{
+          name: 'updateAttention',
+          params: { no: attention.no ? attention.no : 0 },
+        }"
         >수정</router-link
       >
       <button class="btn btn-primary" @click="deleteBoardByNo">삭제</button>
@@ -42,13 +45,13 @@
 </template>
 
 <script>
-import http from '../qna-common';
+import http from '../attention-common';
 import moment from 'moment';
 export default {
-  name: 'QnADetail',
+  name: 'AttentionDetail',
   data() {
     return {
-      qna: {},
+      attention: {},
     };
   },
   methods: {
@@ -57,27 +60,18 @@ export default {
     },
     deleteBoardByNo() {
       if (confirm('정말로 삭제하시겠습니까?')) {
-        http
-          .delete('http://localhost:8000/happyhouse/qna/deleteQnA', {
-            params: {
-              no: this.$route.params.no,
-            },
-          })
-          .then(() => {
-            alert('삭제가 완료되었습니다.');
-            this.$router.push('/qna');
-          });
+        http.delete(`/${this.$route.params.no}`).then(() => {
+          alert('삭제가 완료되었습니다.');
+          this.$router.push('/attention');
+        });
       }
     },
   },
   created() {
     http
-      .get(
-        'http://localhost:8000/happyhouse/qna/findQnAByNo/' +
-          this.$route.params.no,
-      )
+      .get(`/${this.$route.params.no}`)
       .then(res => {
-        this.qna = res.data;
+        this.attention = res.data;
       })
       .catch(err => console.log(err));
   },

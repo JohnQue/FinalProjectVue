@@ -5,10 +5,10 @@
       <div class="inner">
         <div class="summary">
           <h2 class="summary__title">
-            SAFE&nbsp;HOSPITALS
+            INTERESTED
           </h2>
           <p class="summary__description">
-            안심 병원 정보 제공
+            관심 지역 정보 제공
           </p>
         </div>
         <ul>
@@ -25,20 +25,32 @@
             </select>
           </li>
           <li>
-            <select id="gugun" v-model="selGugun">
+            <select id="gugun" @change="setDong($event)" v-model="selGugun">
               <option value="" disabled>구/군</option>
               <option
                 v-for="(gugun, idx) in guguns"
                 :key="idx"
-                :value="gugun['sido_name']"
+                :value="{ code: gugun['sido_code'], name: gugun['sido_name'] }"
               >
                 {{ gugun['sido_name'] }}
               </option>
             </select>
           </li>
           <li>
-            <button @click="setSafeHospitals" id="chc" class="btn btn--primary">
-              안심병원 검색하기
+            <select id="dong" v-model="selDong">
+              <option value="0" selected disabled>동</option>
+              <option
+                v-for="(dong, idx) in dongs"
+                :key="idx"
+                :value="dong.dong"
+              >
+                {{ dong.dong }}
+              </option>
+            </select>
+          </li>
+          <li>
+            <button @click="setInterested" id="chc" class="btn btn--primary">
+              관심 지역 등록하기
             </button>
           </li>
         </ul>
@@ -47,31 +59,32 @@
     <section id="index_section">
       <div class="card col-sm-12 mt-1" style="min-height: 550px;">
         <div class="card-body">
-          <table class="table mt-2" style="width: 70%; margin: 0 auto;">
+          <table
+            class="table mt-2 text-center"
+            style="width: 70%; margin: 0 auto;"
+          >
             <thead>
               <tr>
-                <th>시</th>
-                <th>군/구</th>
-                <th>의료기관명</th>
-                <th>전화번호</th>
+                <th>관심지역</th>
+                <th>삭제</th>
               </tr>
             </thead>
-            <tbody id="searchResult" v-if="hospitals.length > 0">
+            <tbody id="searchResult" v-if="interestedAreas.length > 0">
               <tr
-                v-for="(hos, idx) in hospitals"
+                v-for="(int, idx) in interestedAreas"
                 :key="idx"
-                @click="setMapCenter(hos)"
+                @click="setMapCenter(int)"
               >
-                <td>{{ hos.sido }}</td>
-                <td>{{ hos.gugun }}</td>
-                <td>{{ hos.hospitalname }}</td>
-                <td>{{ hos.tel }}</td>
+                <td>{{ int.sidoName }} {{ int.gugunName }} {{ int.dong }}</td>
+                <td>
+                  <b-button variant="danger">삭제하기</b-button>
+                </td>
               </tr>
             </tbody>
             <tbody v-else>
               <tr>
                 <td colspan="6" class="text-center">
-                  해당 지역에는 안심병원이 없습니다!
+                  등록한 관심 지역 정보가 없습니다!
                 </td>
               </tr>
             </tbody>
@@ -80,7 +93,7 @@
         <div id="map" style="width: 70%; height: 500px; margin: auto;"></div>
       </div>
     </section>
-    <Modal v-if="modal" v-on:close="closeModal" :data="hospital" />
+    <Modal v-if="modal" v-on:close="closeModal" :data="pollution" />
     <script
       type="application/javascript"
       defer
@@ -95,6 +108,7 @@
 </template>
 <script>
 import http from '../map-common';
+import inted from '../interested-common';
 import axios from 'axios';
 import Modal from '@/components/Modal.vue';
 
@@ -103,19 +117,25 @@ export default {
     return {
       sidos: [],
       guguns: [],
+      dongs: [],
       selSido: {
         code: '',
         name: '시/도',
       },
       selGugun: '',
-      hospitals: [],
-      hospital: {
-        시: '',
-        '군/구': '',
-        주소: '',
-        의료기관명: '',
-        'A:외래만/B:외래+입원': '',
-        전화번호: '',
+      selDong: '',
+      interestedAreas: [],
+      interestedArea: {
+        번호: '',
+        법정동: '',
+        지역코드: '',
+        거래액: '',
+        준공년도: '',
+        거래날짜: '',
+        평수: '',
+        층: '',
+        지번: '',
+        건물명: '',
       },
       map: null,
       modal: false,
@@ -130,18 +150,24 @@ export default {
         .get(`/gugun/${this.selSido.code}`)
         .then(res => (this.guguns = res.data));
     },
-    setSafeHospitals() {
-      this.initMap();
+    setDong() {
       http
-        .get(`/safehospital/${this.selSido.name}/${this.selGugun}`)
-        .then(res => {
-          this.hospitals = res.data;
-          if (this.hospitals.length > 0) {
-            this.hospitals.forEach((h, idx) => {
-              this.addGeoMarker(h, idx);
-            });
-          }
-        });
+        .get(`/dong/${this.selGugun.code}`)
+        .then(res => (this.dongs = res.data));
+    },
+    setInterested() {
+      const temp = {
+        sido: this.selSido.code,
+        sidoName: this.selSido.name,
+        gugun: this.selGugun.code,
+        gugunName: this.selGugun.name,
+        dong: this.selDong,
+      };
+      inted.post('/', temp).then(() => {
+        alert('등록되었습니다!');
+        this.interestedAreas = [...this.interestedAreas, temp];
+      });
+      inted.get('/').then(res => (this.interestedAreas = res.data));
     },
     initMap() {
       let multi = { lat: 37.5665734, lng: 126.978179 };
@@ -150,48 +176,55 @@ export default {
         zoom: 15,
       });
     },
-    addMarker(tmpLat, tmpLng, hospital) {
+    addMarker(tmpLat, tmpLng, interestedArea) {
       var marker = new window.google.maps.Marker({
         position: new window.google.maps.LatLng(
           parseFloat(tmpLat),
           parseFloat(tmpLng),
         ),
-        title: hospital.hospitalname,
+        title: '',
       });
       let that = this;
       marker.addListener('click', function() {
         this.map.setZoom(17);
         this.map.setCenter(marker.getPosition());
-        console.log(hospital);
-        that.showModal(hospital);
+        that.showModal(interestedArea);
       });
       marker.setMap(this.map);
     },
-    addGeoMarker(h, idx) {
+    addGeoMarker(i, idx) {
       axios
         .get('https://maps.googleapis.com/maps/api/geocode/json', {
           params: {
             key: 'AIzaSyCTQIlxBn5AfKGvsfJiormAE1esN3fcCkg',
-            address: h.address,
+            address: '',
           },
         })
         .then(res => {
           let tempLat = res.data.results[0].geometry.location.lat;
           let tempLng = res.data.results[0].geometry.location.lng;
-          h.lat = tempLat;
-          h.lng = tempLng;
-          this.addMarker(tempLat, tempLng, h);
-          if (this.hospitals.length - 1 == idx)
+          i.lat = tempLat;
+          i.lng = tempLng;
+          this.addMarker(tempLat, tempLng, i);
+          if (this.interestedAreas.length - 1 == idx)
             this.map.setCenter({ lat: tempLat, lng: tempLng });
         });
     },
-    showModal(hospital) {
-      this.hospital = {
-        시: hospital.sido,
-        '군/구': hospital.gugun,
-        의료기관명: hospital.hospitalname,
-        'A:외래만/B:외래+입원': hospital.diagnosistype,
-        전화번호: hospital.tel,
+    showModal(interestedArea) {
+      http.get(`/apt/${interestedArea}`).then(res => {
+        this.interestedAreas = res.data;
+      });
+      this.interestedArea = {
+        번호: '',
+        법정동: '',
+        지역코드: '',
+        거래액: '',
+        준공년도: '',
+        거래날짜: '',
+        평수: '',
+        층: '',
+        지번: '',
+        건물명: '',
       };
       this.modal = true;
     },
@@ -207,16 +240,21 @@ export default {
     setTimeout(() => {
       this.initMap();
     }, 100);
+    inted.get('/').then(res => (this.interestedAreas = res.data));
   },
 };
 </script>
 
 <style scoped>
-tbody tr:hover {
+tbody tr td:first-child {
+  vertical-align: middle;
+}
+tbody tr td:first-child:hover {
   background: #99e9f2;
   color: white;
   font-weight: bold;
   cursor: pointer;
-  transition: 0.5s ease-out;
+  transition: all 0.5s ease-out;
+  vertical-align: middle;
 }
 </style>

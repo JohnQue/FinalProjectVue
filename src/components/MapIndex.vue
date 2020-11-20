@@ -67,7 +67,11 @@
               </tr>
             </thead>
             <tbody id="searchResult">
-              <tr v-for="(apt, idx) in apts" :key="idx" @click="showModal(apt)">
+              <tr
+                v-for="(apt, idx) in apts"
+                :key="idx"
+                @click="setMapCenter(apt)"
+              >
                 <td>{{ apt.no }}</td>
                 <td>{{ apt.dong }}</td>
                 <td>{{ apt.aptName }}</td>
@@ -127,20 +131,23 @@ export default {
   methods: {
     setGugun() {
       http
-        .get('/gugun?sido=' + event.target.value)
+        .get(`/gugun/${event.target.value}`)
         .then(res => (this.guguns = res.data));
     },
     setDong() {
       http
-        .get('/dong?gugun=' + event.target.value)
+        .get(`/dong/${event.target.value}`)
         .then(res => (this.dongs = res.data));
     },
     setApt() {
-      http.get('/apt?dong=' + event.target.value).then(res => {
+      this.initMap();
+      http.get(`/apt/${event.target.value}`).then(res => {
         this.apts = res.data;
-        this.apts.forEach((apt, idx) => {
-          this.addGeoMarker(apt, idx);
-        });
+        if (this.centers.length > 0) {
+          this.apts.forEach((apt, idx) => {
+            this.addGeoMarker(apt, idx);
+          });
+        }
       });
     },
     initMap() {
@@ -177,13 +184,15 @@ export default {
         .then(res => {
           let tempLat = res.data.results[0].geometry.location.lat;
           let tempLng = res.data.results[0].geometry.location.lng;
+          apt.lat = tempLat;
+          apt.lng = tempLng;
           this.addMarker(tempLat, tempLng, apt);
           if (this.apts.length - 1 == idx)
             this.map.setCenter({ lat: tempLat, lng: tempLng });
         });
     },
     showModal(apt) {
-      http.get(`/deal?aptName=${apt.aptName}`).then(res => {
+      http.get(`/deal/${apt.aptName}`).then(res => {
         let temp = res.data;
         this.apt = {
           번호: temp.no,
@@ -203,6 +212,9 @@ export default {
     closeModal() {
       this.modal = false;
     },
+    setMapCenter(center) {
+      this.map.setCenter({ lat: center.lat, lng: center.lng });
+    },
   },
   created() {
     http.get('/sido').then(res => (this.sidos = res.data));
@@ -213,4 +225,10 @@ export default {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+tbody tr:hover {
+  background: #99e9f2;
+  cursor: pointer;
+  transition: 0.5s ease-out;
+}
+</style>

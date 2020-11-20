@@ -5,10 +5,10 @@
       <div class="inner">
         <div class="summary">
           <h2 class="summary__title">
-            HAPPY&nbsp;HOUSE
+            HEALTH&nbsp;CENTERS
           </h2>
           <p class="summary__description">
-            행복한 우리집은 도대체 어디에..
+            코로나 선별진료소 정보
           </p>
         </div>
         <ul>
@@ -38,7 +38,7 @@
           </li>
           <li>
             <button @click="setHealthCenters" id="chc" class="btn btn--primary">
-              선발진료소 검색하기
+              선별진료소 검색하기
             </button>
           </li>
         </ul>
@@ -63,7 +63,7 @@
               <tr
                 v-for="(center, idx) in centers"
                 :key="idx"
-                @click="showModal(center)"
+                @click="setMapCenter(center)"
               >
                 <td>{{ center.no }}</td>
                 <td>{{ center.institute }}</td>
@@ -109,6 +109,10 @@ export default {
         번호: '',
         기관명: '',
         주소: '',
+        '평일 진료시간': '',
+        '토요일 진료시간': '',
+        '일요일/공휴일 진료시간': '',
+        전화번호: '',
       },
       map: null,
       modal: false,
@@ -120,17 +124,20 @@ export default {
   methods: {
     setGugun() {
       http
-        .get(`/gugun?sido=${this.selSido.code}`)
+        .get(`/gugun/${this.selSido.code}`)
         .then(res => (this.guguns = res.data));
     },
     setHealthCenters() {
+      this.initMap();
       http
         .get(`/healthcenter/${this.selSido.name}/${this.selGugun}`)
         .then(res => {
           this.centers = res.data;
-          this.centers.forEach((c, idx) => {
-            this.addGeoMarker(c, idx);
-          });
+          if (this.centers.length > 0) {
+            this.centers.forEach((c, idx) => {
+              this.addGeoMarker(c, idx);
+            });
+          }
         });
     },
     initMap() {
@@ -152,6 +159,7 @@ export default {
       marker.addListener('click', function() {
         this.map.setZoom(17);
         this.map.setCenter(marker.getPosition());
+        console.log(center);
         that.showModal(center);
       });
       marker.setMap(this.map);
@@ -167,17 +175,30 @@ export default {
         .then(res => {
           let tempLat = res.data.results[0].geometry.location.lat;
           let tempLng = res.data.results[0].geometry.location.lng;
+          c.lat = tempLat;
+          c.lng = tempLng;
           this.addMarker(tempLat, tempLng, c);
           if (this.centers.length - 1 == idx)
             this.map.setCenter({ lat: tempLat, lng: tempLng });
         });
     },
     showModal(center) {
-      this.center = center;
+      this.center = {
+        번호: center.no,
+        기관명: center.institute,
+        주소: center.address,
+        '평일 진료시간': center.oponweek,
+        '토요일 진료시간': center.oponweekend,
+        '일요일/공휴일 진료시간': center.oponholiday,
+        전화번호: center.tel,
+      };
       this.modal = true;
     },
     closeModal() {
       this.modal = false;
+    },
+    setMapCenter(center) {
+      this.map.setCenter({ lat: center.lat, lng: center.lng });
     },
   },
   created() {
@@ -189,4 +210,11 @@ export default {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+tbody tr:hover {
+  background: #99e9f2;
+  cursor: pointer;
+  color: white;
+  transition: all 0.5s ease-out;
+}
+</style>
