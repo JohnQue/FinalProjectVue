@@ -60,7 +60,7 @@ export default {
   methods: {
     register() {
       http
-        .post('/addQnA', {
+        .post('/', {
           writer: this.qna.writer,
           title: this.qna.title,
           content: this.qna.content,
@@ -73,7 +73,7 @@ export default {
     },
     update() {
       http
-        .put('/updateQnA', {
+        .put('/', {
           no: this.qna.no,
           writer: this.qna.writer,
           title: this.qna.title,
@@ -89,7 +89,7 @@ export default {
   created() {
     if (this.$route.params.no) {
       http
-        .get('/findQnAByNo/' + this.$route.params.no)
+        .get(`/${this.$route.params.no}`)
         .then(res => {
           this.qna = res.data;
         })

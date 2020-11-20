@@ -57,25 +57,16 @@ export default {
     },
     deleteBoardByNo() {
       if (confirm('정말로 삭제하시겠습니까?')) {
-        http
-          .delete('http://localhost:8000/happyhouse/qna/deleteQnA', {
-            params: {
-              no: this.$route.params.no,
-            },
-          })
-          .then(() => {
-            alert('삭제가 완료되었습니다.');
-            this.$router.push('/qna');
-          });
+        http.delete(`/${this.$route.params.no}`).then(() => {
+          alert('삭제가 완료되었습니다.');
+          this.$router.push('/qna');
+        });
       }
     },
   },
   created() {
     http
-      .get(
-        'http://localhost:8000/happyhouse/qna/findQnAByNo/' +
-          this.$route.params.no,
-      )
+      .get(`/${this.$route.params.no}`)
       .then(res => {
         this.qna = res.data;
       })

@@ -143,7 +143,7 @@ export default {
       this.initMap();
       http.get(`/apt/${event.target.value}`).then(res => {
         this.apts = res.data;
-        if (this.centers.length > 0) {
+        if (this.apts.length > 0) {
           this.apts.forEach((apt, idx) => {
             this.addGeoMarker(apt, idx);
           });
@@ -229,6 +229,8 @@ export default {
 tbody tr:hover {
   background: #99e9f2;
   cursor: pointer;
-  transition: 0.5s ease-out;
+  font-weight: bold;
+  color: white;
+  transition: all 0.5s ease-out;
 }
 </style>

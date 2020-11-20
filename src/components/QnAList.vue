@@ -48,7 +48,7 @@ export default {
   },
   created() {
     http
-      .get('')
+      .get('/')
       .then(res => (this.qnas = res.data))
       .catch(err => console.log(err));
   },

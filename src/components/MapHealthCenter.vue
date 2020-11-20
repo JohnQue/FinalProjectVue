@@ -53,10 +53,6 @@
                 <th>번호</th>
                 <th>기관</th>
                 <th>주소</th>
-                <th>평일 진료시간</th>
-                <th>토요일 진료시간</th>
-                <th>일요일/공휴일 진료시간</th>
-                <th>전화번호</th>
               </tr>
             </thead>
             <tbody id="searchResult">
@@ -68,10 +64,6 @@
                 <td>{{ center.no }}</td>
                 <td>{{ center.institute }}</td>
                 <td>{{ center.address }}</td>
-                <td>{{ center.oponweek }}</td>
-                <td>{{ center.oponweekend }}</td>
-                <td>{{ center.oponholiday }}</td>
-                <td>{{ center.tel }}</td>
               </tr>
             </tbody>
           </table>
@@ -214,6 +206,7 @@ export default {
 tbody tr:hover {
   background: #99e9f2;
   cursor: pointer;
+  font-weight: bold;
   color: white;
   transition: all 0.5s ease-out;
 }
