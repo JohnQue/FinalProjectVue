@@ -15,7 +15,9 @@
           <ul>
             <li>
               <select id="sido" @change="setGugun($event)">
-                <option value="0" selected disabled>시/도</option>
+                <option value="" selected disabled hidden
+                  >시/도를 선택하세요</option
+                >
                 <option
                   v-for="(sido, idx) in sidos"
                   :key="idx"
@@ -27,7 +29,9 @@
             </li>
             <li>
               <select id="gugun" @change="setDong($event)">
-                <option value="0" selected disabled>구/군</option>
+                <option value="" selected disabled hidden
+                  >구/군을 선택하세요</option
+                >
                 <option
                   v-for="(gugun, idx) in guguns"
                   :key="idx"
@@ -39,7 +43,9 @@
             </li>
             <li>
               <select id="dong" @change="setApt($event)">
-                <option value="0" selected disabled>동</option>
+                <option value="" selected disabled hidden
+                  >동을 선택하세요</option
+                >
                 <option
                   v-for="(dong, idx) in dongs"
                   :key="idx"
@@ -81,26 +87,57 @@
             </tbody>
           </table>
         </div>
-        <div id="map" style="width: 70%; height: 500px; margin: auto;"></div>
+        <gmap-map
+          id="map"
+          :center="center"
+          :zoom="zoom"
+          style="width:70%;  height: 500px;"
+        >
+          <gmap-marker
+            :key="index"
+            v-for="(m, index) in markers"
+            :position="m.position"
+            @click="markerClicked(m, index)"
+          ></gmap-marker>
+        </gmap-map>
       </div>
     </section>
-    <Modal v-if="modal" v-on:close="closeModal" :data="apt" />
-    <script
-      type="application/javascript"
-      defer
-      src="https://unpkg.com/@google/markerclustererplus@4.0.1/dist/markerclustererplus.min.js"
-    ></script>
-    <script
-      type="application/javascript"
-      defer
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCTQIlxBn5AfKGvsfJiormAE1esN3fcCkg"
-    ></script>
+    <section class="section section--feature">
+      <div class="tiles">
+        <div class="inner">
+          <ul class="clearfix">
+            <li>
+              <img src="../../img/sideAD.jpg" alt="build" style="width: 100%" />
+            </li>
+            <li>
+              <h3>주택 관련 기사</h3>
+              <div class="separator"></div>
+              <p>&lt;인사&gt; 신동아건설</p>
+              <p>12.16 대책 후 '매수·매도자 모두 일단 관망세'</p>
+              <p>구미시, 낙동강 변 국가3산단에 민간공원 조성</p>
+              <p>'은행'과 '보험사'의 주택담보대출 조건, 어떻게 다를까?</p>
+              <div class="separator"></div>
+            </li>
+            <li>
+              <h3>오늘의 뉴스</h3>
+              <div class="separator"></div>
+              <ul>
+                <li v-for="(n, idx) in news" :key="idx">
+                  <a :href="n.link" v-html="n.title" target="_blank"> </a>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+    <ListModal v-if="modal" v-on:close="closeModal" :data="list" />
   </div>
 </template>
 <script>
 import http from '../map-common';
 import axios from 'axios';
-import Modal from '@/components/Modal.vue';
+import ListModal from '@/components/ListModal.vue';
 
 export default {
   data() {
@@ -109,6 +146,10 @@ export default {
       guguns: [],
       dongs: [],
       apts: [],
+      list: [],
+      news: [],
+      markers: [],
+      places: [],
       apt: {
         번호: '',
         법정동: '',
@@ -121,12 +162,13 @@ export default {
         지번: '',
         건물명: '',
       },
+      center: { lat: 37.5665734, lng: 126.978179 },
+      zoom: 15,
       modal: false,
-      map: null,
     };
   },
   components: {
-    Modal,
+    ListModal,
   },
   methods: {
     setGugun() {
@@ -150,35 +192,57 @@ export default {
         }
       });
     },
-    initMap() {
-      let multi = { lat: 37.5665734, lng: 126.978179 };
-      this.map = new window.google.maps.Map(document.getElementById('map'), {
-        center: multi,
-        zoom: 15,
+    showModal(apt) {
+      http.get(`/deal/${apt.dong}/${apt.aptName}`).then(res => {
+        this.list = [];
+        let data = res.data;
+        data.forEach(temp => {
+          this.apt = {
+            번호: temp.no,
+            법정동: temp.dong,
+            지역코드: temp.code,
+            거래액: temp.dealAmount,
+            준공년도: temp.buildYear,
+            거래날짜: temp.dealYear + '-' + temp.dealMonth + '-' + temp.dealDay,
+            평수: temp.area,
+            층: temp.floor,
+            지번: temp.jibun,
+            건물명: temp.aptName,
+          };
+          this.list.push(this.apt);
+        });
+
+        this.modal = true;
       });
     },
+    closeModal() {
+      this.modal = false;
+    },
+    setMapCenter(center) {
+      this.center = { lat: center.lat, lng: center.lng };
+      this.zoom = 17;
+    },
+    initMap() {
+      this.currentPlace = null;
+      this.markers = [];
+      this.places = [];
+      this.center = { lat: 37.5665734, lng: 126.978179 };
+    },
     addMarker(tmpLat, tmpLng, apt) {
-      var marker = new window.google.maps.Marker({
-        position: new window.google.maps.LatLng(
-          parseFloat(tmpLat),
-          parseFloat(tmpLng),
-        ),
-        title: apt.aptName,
-      });
-      let that = this;
-      marker.addListener('click', function() {
-        this.map.setZoom(17);
-        this.map.setCenter(marker.getPosition());
-        that.showModal(apt);
-      });
-      marker.setMap(this.map);
+      const marker = {
+        lat: parseFloat(tmpLat),
+        lng: parseFloat(tmpLng),
+      };
+      this.markers.push({ position: marker });
+      this.places.push(apt);
+      this.center = marker;
     },
     addGeoMarker(apt, idx) {
       axios
         .get('https://maps.googleapis.com/maps/api/geocode/json', {
           params: {
             key: 'AIzaSyCTQIlxBn5AfKGvsfJiormAE1esN3fcCkg',
-            address: apt.dong + '+' + apt.aptName + '+' + apt.jibun,
+            address: apt.dong + '+' + apt.jibun,
           },
         })
         .then(res => {
@@ -188,39 +252,28 @@ export default {
           apt.lng = tempLng;
           this.addMarker(tempLat, tempLng, apt);
           if (this.apts.length - 1 == idx)
-            this.map.setCenter({ lat: tempLat, lng: tempLng });
+            this.center = { lat: tempLat, lng: tempLng };
         });
     },
-    showModal(apt) {
-      http.get(`/deal/${apt.aptName}`).then(res => {
-        let temp = res.data;
-        this.apt = {
-          번호: temp.no,
-          법정동: temp.dong,
-          지역코드: temp.code,
-          거래액: temp.dealAmount,
-          준공년도: temp.buildYear,
-          거래날짜: temp.dealYear + '-' + temp.dealMonth + '-' + temp.dealDay,
-          평수: temp.area,
-          층: temp.floor,
-          지번: temp.jibun,
-          건물명: temp.aptName,
+    geolocate: function() {
+      navigator.geolocation.getCurrentPosition(position => {
+        this.center = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
         };
-        this.modal = true;
       });
     },
-    closeModal() {
-      this.modal = false;
-    },
-    setMapCenter(center) {
-      this.map.setCenter({ lat: center.lat, lng: center.lng });
+    markerClicked(marker, index) {
+      this.center = marker.position;
+      this.showModal(this.apts[index]);
     },
   },
   created() {
     http.get('/sido').then(res => (this.sidos = res.data));
-    setTimeout(() => {
-      this.initMap();
-    }, 100);
+    http.get('/news').then(res => (this.news = res.data));
+  },
+  mounted() {
+    this.geolocate();
   },
 };
 </script>
@@ -229,7 +282,6 @@ export default {
 tbody tr:hover {
   background: #99e9f2;
   cursor: pointer;
-  font-weight: bold;
   color: white;
   transition: all 0.5s ease-out;
 }

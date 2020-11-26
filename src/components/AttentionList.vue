@@ -1,37 +1,45 @@
 <template>
-  <div class="">
-    <table class="table table-bordered">
-      <colgroup>
-        <col width="7%" />
-        <col width="50%" />
-        <col width="15%" />
-        <col width="28%" />
-      </colgroup>
-      <tr class="text-center">
-        <th>번호</th>
-        <th>제목</th>
-        <th>작성자</th>
-        <th>날짜</th>
-      </tr>
-      <tr class="text-center" v-for="(attention, idx) in attentions" :key="idx">
-        <td>{{ attention.no }}</td>
-        <td>
-          <router-link
-            :to="{ name: 'AttentionDetail', params: { no: attention.no } }"
-            >{{ attention.title }}</router-link
+  <section id="index_section">
+    <div class="card col-sm-12 mt-1" style="min-height: 550px;">
+      <div class="card-body" style="width: 60%; margin: 0 auto;">
+        <table class="table table-bordered">
+          <colgroup>
+            <col width="7%" />
+            <col width="50%" />
+            <col width="15%" />
+            <col width="28%" />
+          </colgroup>
+          <tr class="text-center">
+            <th>번호</th>
+            <th>제목</th>
+            <th>작성자</th>
+            <th>날짜</th>
+          </tr>
+          <tr
+            class="text-center"
+            v-for="(attention, idx) in attentions"
+            :key="idx"
           >
-        </td>
-        <td>{{ attention.writer }}</td>
-        <td>{{ convertToDate(attention.date) }}</td>
-      </tr>
-    </table>
+            <td>{{ attention.no }}</td>
+            <td>
+              <router-link
+                :to="{ name: 'AttentionDetail', params: { no: attention.no } }"
+                >{{ attention.title }}</router-link
+              >
+            </td>
+            <td>{{ attention.writer }}</td>
+            <td>{{ convertToDate(attention.date) }}</td>
+          </tr>
+        </table>
 
-    <div class="text-right">
-      <router-link class="btn btn-primary" to="/attentionRegist"
-        >등록</router-link
-      >
+        <div class="text-right">
+          <router-link class="btn btn--primary" to="/attentionRegist"
+            >등록</router-link
+          >
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <script>
@@ -58,4 +66,8 @@ export default {
 };
 </script>
 
-<style></style>
+<style>
+td {
+  height: 30px;
+}
+</style>

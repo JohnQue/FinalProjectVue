@@ -1,49 +1,48 @@
 <template>
-  <div>
-    <label for="작성자">작성자</label>
-    <input
-      type="text"
-      placeholder="작성자를 입력하세요"
-      class="form-control"
-      v-model="qna.writer"
-    />
-    <label for="제목">제목</label>
-    <input
-      type="text"
-      placeholder="제목을 입력하세요"
-      class="form-control"
-      v-model="qna.title"
-    />
-    <label for="내용">내용</label>
-    <textarea
-      placeholder="내용을 입력하세요"
-      class="form-control"
-      v-model="qna.content"
-    ></textarea>
-    <div class="text-right" style="margin-top: 30px;">
-      <button
-        v-if="qna.no === 0"
-        v-on:click="register"
-        class="btn btn-primary"
-        style="margin-right: 10px"
-      >
-        등록
-      </button>
-      <button
-        v-else
-        v-on:click="update"
-        class="btn btn-primary"
-        style="margin-right: 10px"
-      >
-        수정
-      </button>
-      <router-link to="/qna" class="btn btn-primary">목록</router-link>
+  <section id="index_section">
+    <div class="card col-sm-12 mt-1" style="min-height: 550px;">
+      <div class="card-body" style="width: 60%; margin: 0 auto;">
+        <label for="제목">제목</label>
+        <input
+          type="text"
+          placeholder="제목을 입력하세요"
+          class="form-control"
+          v-model="qna.title"
+        />
+        <label for="내용">내용</label>
+        <textarea
+          placeholder="내용을 입력하세요"
+          class="form-control"
+          v-model="qna.content"
+        ></textarea>
+        <div class="text-right" style="margin-top: 30px;">
+          <button
+            v-if="qna.no === 0"
+            v-on:click="register"
+            class="btn btn--primary"
+            style="margin-right: 10px"
+          >
+            등록
+          </button>
+          <button
+            v-else
+            v-on:click="update"
+            class="btn btn--primary"
+            style="margin-right: 10px"
+          >
+            수정
+          </button>
+          <router-link to="/qna" class="btn btn--primary">목록</router-link>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import http from '../qna-common';
+
 export default {
   name: 'QnARegist',
   data() {
@@ -61,7 +60,7 @@ export default {
     register() {
       http
         .post('/', {
-          writer: this.qna.writer,
+          writer: this.getUserId,
           title: this.qna.title,
           content: this.qna.content,
         })
@@ -75,7 +74,7 @@ export default {
       http
         .put('/', {
           no: this.qna.no,
-          writer: this.qna.writer,
+          writer: this.getUserId,
           title: this.qna.title,
           content: this.qna.content,
         })
@@ -95,6 +94,9 @@ export default {
         })
         .catch(err => console.log(err));
     }
+  },
+  computed: {
+    ...mapGetters(['getUserId']),
   },
 };
 </script>

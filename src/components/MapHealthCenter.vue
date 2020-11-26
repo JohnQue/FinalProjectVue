@@ -1,20 +1,22 @@
 <template>
   <div>
     <!-- VISUAL -->
-    <section class="section section--visual">
+    <section class="section section--visual healthcenter">
       <div class="inner">
         <div class="summary">
           <h2 class="summary__title">
-            HEALTH&nbsp;CENTERS
+            HEALTH&nbsp;CENTER
           </h2>
           <p class="summary__description">
             코로나 선별진료소 정보
           </p>
         </div>
-        <ul>
+        <ul id="sign-form">
           <li>
             <select id="sido" @change="setGugun" v-model="selSido">
-              <option value="0" selected disabled>시/도</option>
+              <option value="" selected disabled hidden
+                >시/도를 선택하세요</option
+              >
               <option
                 v-for="(sido, idx) in sidos"
                 :key="idx"
@@ -26,7 +28,9 @@
           </li>
           <li>
             <select id="gugun" v-model="selGugun">
-              <option value="0" selected disabled>구/군</option>
+              <option value="" selected disabled hidden
+                >구/군을 선택하세요</option
+              >
               <option
                 v-for="(gugun, idx) in guguns"
                 :key="idx"
@@ -57,31 +61,33 @@
             </thead>
             <tbody id="searchResult">
               <tr
-                v-for="(center, idx) in centers"
+                v-for="(c, idx) in healthCenters"
                 :key="idx"
-                @click="setMapCenter(center)"
+                @click="setMapCenter(c)"
               >
-                <td>{{ center.no }}</td>
-                <td>{{ center.institute }}</td>
-                <td>{{ center.address }}</td>
+                <td>{{ c.no }}</td>
+                <td>{{ c.institute }}</td>
+                <td>{{ c.address }}</td>
               </tr>
             </tbody>
           </table>
         </div>
-        <div id="map" style="width: 70%; height: 500px; margin: auto;"></div>
+        <gmap-map
+          id="map"
+          :center="center"
+          :zoom="zoom"
+          style="width:70%;  height: 500px;"
+        >
+          <gmap-marker
+            :key="index"
+            v-for="(m, index) in markers"
+            :position="m.position"
+            @click="markerClicked(m, index)"
+          ></gmap-marker>
+        </gmap-map>
       </div>
     </section>
-    <Modal v-if="modal" v-on:close="closeModal" :data="center" />
-    <script
-      type="application/javascript"
-      defer
-      src="https://unpkg.com/@google/markerclustererplus@4.0.1/dist/markerclustererplus.min.js"
-    ></script>
-    <script
-      type="application/javascript"
-      defer
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCTQIlxBn5AfKGvsfJiormAE1esN3fcCkg"
-    ></script>
+    <Modal v-if="modal" v-on:close="closeModal" :data="healthCenter" />
   </div>
 </template>
 <script>
@@ -92,12 +98,14 @@ import Modal from '@/components/Modal.vue';
 export default {
   data() {
     return {
+      markers: [],
+      places: [],
       sidos: [],
       guguns: [],
-      selSido: '도/시',
-      selGugun: '구/군',
-      centers: [],
-      center: {
+      selSido: '',
+      selGugun: '',
+      healthCenters: [],
+      healthCenter: {
         번호: '',
         기관명: '',
         주소: '',
@@ -106,7 +114,8 @@ export default {
         '일요일/공휴일 진료시간': '',
         전화번호: '',
       },
-      map: null,
+      center: { lat: 37.5665734, lng: 126.978179 },
+      zoom: 15,
       modal: false,
     };
   },
@@ -124,37 +133,28 @@ export default {
       http
         .get(`/healthcenter/${this.selSido.name}/${this.selGugun}`)
         .then(res => {
-          this.centers = res.data;
-          if (this.centers.length > 0) {
-            this.centers.forEach((c, idx) => {
+          this.healthCenters = res.data;
+          if (this.healthCenters.length > 0) {
+            this.healthCenters.forEach((c, idx) => {
               this.addGeoMarker(c, idx);
             });
           }
         });
     },
     initMap() {
-      let multi = { lat: 37.5665734, lng: 126.978179 };
-      this.map = new window.google.maps.Map(document.getElementById('map'), {
-        center: multi,
-        zoom: 15,
-      });
+      this.currentPlace = null;
+      this.markers = [];
+      this.places = [];
+      this.center = { lat: 37.5665734, lng: 126.978179 };
     },
     addMarker(tmpLat, tmpLng, center) {
-      var marker = new window.google.maps.Marker({
-        position: new window.google.maps.LatLng(
-          parseFloat(tmpLat),
-          parseFloat(tmpLng),
-        ),
-        title: center.institute,
-      });
-      let that = this;
-      marker.addListener('click', function() {
-        this.map.setZoom(17);
-        this.map.setCenter(marker.getPosition());
-        console.log(center);
-        that.showModal(center);
-      });
-      marker.setMap(this.map);
+      const marker = {
+        lat: parseFloat(tmpLat),
+        lng: parseFloat(tmpLng),
+      };
+      this.markers.push({ position: marker });
+      this.places.push(center);
+      this.center = marker;
     },
     addGeoMarker(c, idx) {
       axios
@@ -170,19 +170,19 @@ export default {
           c.lat = tempLat;
           c.lng = tempLng;
           this.addMarker(tempLat, tempLng, c);
-          if (this.centers.length - 1 == idx)
-            this.map.setCenter({ lat: tempLat, lng: tempLng });
+          if (this.healthCenters.length - 1 == idx)
+            this.center = { lat: tempLat, lng: tempLng };
         });
     },
-    showModal(center) {
-      this.center = {
-        번호: center.no,
-        기관명: center.institute,
-        주소: center.address,
-        '평일 진료시간': center.oponweek,
-        '토요일 진료시간': center.oponweekend,
-        '일요일/공휴일 진료시간': center.oponholiday,
-        전화번호: center.tel,
+    showModal(healthCenter) {
+      this.healthCenter = {
+        번호: healthCenter.no,
+        기관명: healthCenter.institute,
+        주소: healthCenter.address,
+        '평일 진료시간': healthCenter.oponweek,
+        '토요일 진료시간': healthCenter.oponweekend,
+        '일요일/공휴일 진료시간': healthCenter.oponholiday,
+        전화번호: healthCenter.tel,
       };
       this.modal = true;
     },
@@ -190,14 +190,27 @@ export default {
       this.modal = false;
     },
     setMapCenter(center) {
-      this.map.setCenter({ lat: center.lat, lng: center.lng });
+      this.center = { lat: center.lat, lng: center.lng };
+      this.zoom = 17;
+    },
+    geolocate: function() {
+      navigator.geolocation.getCurrentPosition(position => {
+        this.center = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+      });
+    },
+    markerClicked(marker, index) {
+      this.center = marker.position;
+      this.showModal(this.healthCenters[index]);
     },
   },
   created() {
     http.get('/sido').then(res => (this.sidos = res.data));
-    setTimeout(() => {
-      this.initMap();
-    }, 100);
+  },
+  mounted() {
+    this.geolocate();
   },
 };
 </script>
@@ -206,7 +219,6 @@ export default {
 tbody tr:hover {
   background: #99e9f2;
   cursor: pointer;
-  font-weight: bold;
   color: white;
   transition: all 0.5s ease-out;
 }

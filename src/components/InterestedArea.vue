@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- VISUAL -->
-    <section class="section section--visual">
+    <section class="section section--visual store">
       <div class="inner">
         <div class="summary">
           <h2 class="summary__title">
@@ -11,10 +11,12 @@
             관심 지역 정보 제공
           </p>
         </div>
-        <ul>
+        <ul id="sign-form">
           <li>
             <select id="sido" @change="setGugun($event)" v-model="selSido">
-              <option value="" disabled>시/도</option>
+              <option value="" selected disabled hidden
+                >시/도를 선택하세요</option
+              >
               <option
                 v-for="(sido, idx) in sidos"
                 :key="idx"
@@ -26,7 +28,9 @@
           </li>
           <li>
             <select id="gugun" @change="setDong($event)" v-model="selGugun">
-              <option value="" disabled>구/군</option>
+              <option value="" selected disabled hidden
+                >구/군을 선택하세요</option
+              >
               <option
                 v-for="(gugun, idx) in guguns"
                 :key="idx"
@@ -38,7 +42,7 @@
           </li>
           <li>
             <select id="dong" v-model="selDong">
-              <option value="0" selected disabled>동</option>
+              <option value="" selected disabled hidden>동을 선택하세요</option>
               <option
                 v-for="(dong, idx) in dongs"
                 :key="idx"
@@ -69,15 +73,21 @@
                 <th>삭제</th>
               </tr>
             </thead>
-            <tbody id="searchResult" v-if="interestedAreas.length > 0">
+            <tbody
+              id="searchResult"
+              class="areas"
+              v-if="interestedAreas.length > 0"
+            >
               <tr
                 v-for="(int, idx) in interestedAreas"
                 :key="idx"
-                @click="setAreas(int)"
+                @click="setInfo(int)"
               >
                 <td>{{ int.sidoName }} {{ int.gugunName }} {{ int.dong }}</td>
                 <td>
-                  <b-button variant="danger">삭제하기</b-button>
+                  <button class="btn btn--danger" @click="deleteArea(int.no)">
+                    삭제하기
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -90,7 +100,19 @@
             </tbody>
           </table>
         </div>
-        <div id="map" style="width: 70%; height: 500px; margin: auto;"></div>
+        <gmap-map
+          id="map"
+          :center="center"
+          :zoom="zoom"
+          style="width:70%;  height: 500px;"
+        >
+          <gmap-marker
+            :key="index"
+            v-for="(m, index) in markers"
+            :position="m.position"
+            @click="markerClicked(m, index)"
+          ></gmap-marker>
+        </gmap-map>
         <div class="card-body">
           <table
             class="table mt-2 text-center"
@@ -106,7 +128,11 @@
               </tr>
             </thead>
             <tbody id="searchResult" v-if="areas.length > 0">
-              <tr v-for="(area, idx) in areas" :key="idx">
+              <tr
+                v-for="(area, idx) in areas"
+                :key="idx"
+                @click="setMapCenter(area)"
+              >
                 <td>{{ area.no }}</td>
                 <td>{{ area.dong }}</td>
                 <td>{{ area.aptName }}</td>
@@ -135,7 +161,7 @@
                 <th>가게명</th>
               </tr>
             </thead>
-            <tbody id="searchResult" v-if="stores.length > 0">
+            <tbody id="searchResult2" v-if="stores.length > 0">
               <tr v-for="(store, idx) in stores" :key="idx">
                 <td>{{ store.dong }}</td>
                 <td>{{ store.roadname }}</td>
@@ -153,46 +179,39 @@
         </div>
       </div>
     </section>
-    <Modal v-if="modal" v-on:close="closeModal" :data="pollution" />
-    <script
-      type="application/javascript"
-      defer
-      src="https://unpkg.com/@google/markerclustererplus@4.0.1/dist/markerclustererplus.min.js"
-    ></script>
-    <script
-      type="application/javascript"
-      defer
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCTQIlxBn5AfKGvsfJiormAE1esN3fcCkg"
-    ></script>
+    <ListModal v-if="modal" v-on:close="closeModal" :data="details" />
   </div>
 </template>
 <script>
 import http from '../map-common';
 import inted from '../interested-common';
 import axios from 'axios';
-import Modal from '@/components/Modal.vue';
+import ListModal from '@/components/ListModal.vue';
+import { mapGetters } from 'vuex';
 
 export default {
   data() {
     return {
+      markers: [],
+      places: [],
       sidos: [],
       guguns: [],
       dongs: [],
-      selSido: {
-        code: '',
-        name: '시/도',
-      },
+      selSido: '',
       selGugun: '',
       selDong: '',
       interestedAreas: [],
+      detail: '',
+      details: [],
       areas: [],
       stores: [],
-      map: null,
+      center: { lat: 37.5665734, lng: 126.978179 },
+      zoom: 15,
       modal: false,
     };
   },
   components: {
-    Modal,
+    ListModal,
   },
   methods: {
     setGugun() {
@@ -205,14 +224,32 @@ export default {
         .get(`/dong/${this.selGugun.code}`)
         .then(res => (this.dongs = res.data));
     },
-    setAreas(int) {
-      http.get(`/apt/${int.dong}`).then(res => (this.areas = res.data));
+    setInfo(int) {
+      this.initMap();
+      this.setAreas(int);
       this.setStores(int);
+    },
+    setAreas(int) {
+      http.get(`/apt/${int.dong}`).then(res => {
+        this.areas = res.data;
+        if (this.areas.length > 0) {
+          this.areas.forEach((place, idx) => {
+            this.addGeoMarker(place, idx);
+          });
+        }
+      });
     },
     setStores(int) {
       http.get(`/store/${int.dong}`).then(res => {
         this.stores = res.data;
-        console.log(res.data);
+      });
+    },
+    deleteArea(no) {
+      inted.delete(`/${no}`).then(() => {
+        alert('삭제가 완료되었습니다!');
+        this.interestedAreas = this.interestedAreas.filter(
+          inted => inted.no !== no,
+        );
       });
     },
     setInterested() {
@@ -222,6 +259,7 @@ export default {
         gugun: this.selGugun.code,
         gugunName: this.selGugun.name,
         dong: this.selDong,
+        userid: this.getUserId,
       };
       inted.post('/', temp).then(() => {
         alert('등록되었습니다!');
@@ -230,34 +268,26 @@ export default {
       inted.get('/').then(res => (this.interestedAreas = res.data));
     },
     initMap() {
-      let multi = { lat: 37.5665734, lng: 126.978179 };
-      this.map = new window.google.maps.Map(document.getElementById('map'), {
-        center: multi,
-        zoom: 15,
-      });
+      this.currentPlace = null;
+      this.markers = [];
+      this.places = [];
+      this.center = { lat: 37.5665734, lng: 126.978179 };
     },
     addMarker(tmpLat, tmpLng, interestedArea) {
-      var marker = new window.google.maps.Marker({
-        position: new window.google.maps.LatLng(
-          parseFloat(tmpLat),
-          parseFloat(tmpLng),
-        ),
-        title: '',
-      });
-      let that = this;
-      marker.addListener('click', function() {
-        this.map.setZoom(17);
-        this.map.setCenter(marker.getPosition());
-        that.showModal(interestedArea);
-      });
-      marker.setMap(this.map);
+      const marker = {
+        lat: parseFloat(tmpLat),
+        lng: parseFloat(tmpLng),
+      };
+      this.markers.push({ position: marker });
+      this.places.push(interestedArea);
+      this.center = marker;
     },
     addGeoMarker(i, idx) {
       axios
         .get('https://maps.googleapis.com/maps/api/geocode/json', {
           params: {
             key: 'AIzaSyCTQIlxBn5AfKGvsfJiormAE1esN3fcCkg',
-            address: '',
+            address: i.dong + '+' + i.jibun,
           },
         })
         .then(res => {
@@ -267,40 +297,62 @@ export default {
           i.lng = tempLng;
           this.addMarker(tempLat, tempLng, i);
           if (this.interestedAreas.length - 1 == idx)
-            this.map.setCenter({ lat: tempLat, lng: tempLng });
+            this.center = { lat: tempLat, lng: tempLng };
         });
     },
     showModal(interestedArea) {
-      http.get(`/apt/${interestedArea}`).then(res => {
-        this.interestedAreas = res.data;
-      });
-      this.interestedArea = {
-        번호: '',
-        법정동: '',
-        지역코드: '',
-        거래액: '',
-        준공년도: '',
-        거래날짜: '',
-        평수: '',
-        층: '',
-        지번: '',
-        건물명: '',
-      };
+      http
+        .get(`/deal/${interestedArea.dong}/${interestedArea.aptName}`)
+        .then(res => {
+          this.details = [];
+          let data = res.data;
+          data.forEach(temp => {
+            console.log(temp);
+            this.detail = {
+              번호: temp.no,
+              법정동: temp.dong,
+              지역코드: temp.code,
+              거래액: temp.dealAmount,
+              준공년도: temp.buildYear,
+              거래날짜:
+                temp.dealYear + '-' + temp.dealMonth + '-' + temp.dealDay,
+              평수: temp.area,
+              층: temp.floor,
+              지번: temp.jibun,
+              건물명: temp.aptName,
+            };
+            this.details.push(this.detail);
+          });
+        });
       this.modal = true;
     },
     closeModal() {
       this.modal = false;
     },
     setMapCenter(center) {
-      this.map.setCenter({ lat: center.lat, lng: center.lng });
+      this.center = { lat: center.lat, lng: center.lng };
+    },
+    geolocate: function() {
+      navigator.geolocation.getCurrentPosition(position => {
+        this.center = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+      });
+    },
+    markerClicked(marker, index) {
+      this.center = marker.position;
+      this.showModal(this.areas[index]);
     },
   },
   created() {
     http.get('/sido').then(res => (this.sidos = res.data));
-    setTimeout(() => {
-      this.initMap();
-    }, 100);
-    inted.get('/').then(res => (this.interestedAreas = res.data));
+    inted
+      .get(`/${this.getUserId}`)
+      .then(res => (this.interestedAreas = res.data));
+  },
+  computed: {
+    ...mapGetters(['getUserId']),
   },
 };
 </script>
@@ -309,12 +361,18 @@ export default {
 tbody tr td:first-child {
   vertical-align: middle;
 }
-tbody tr td:first-child:hover {
+tbody.areas tr td:first-child:hover {
   background: #99e9f2;
   color: white;
-  font-weight: bold;
   cursor: pointer;
   transition: all 0.5s ease-out;
   vertical-align: middle;
+}
+
+tbody#searchResult tr:hover {
+  background: #99e9f2;
+  cursor: pointer;
+  color: white;
+  transition: all 0.5s ease-out;
 }
 </style>
